@@ -1,0 +1,21 @@
+client sends request
+and request passes on to the series of filter
+where one filter acts as a delegation filter and delegates filter to securityfilterchain
+from where the authenticationFilter checks with the Securitycontextholder (authentication principal and authorities)
+from there it goes to authentication manager where the providerManager gives authentication
+from there to authenticationProvider then to UserDetailsService then to UserDetails then to User then finally to DB
+Back from DB to user to userdetails to userdetailsservice
+to authenticationprovider
+to authentication manager
+to authentication filter
+back to securitychainfilter
+
+Common Security filter chains are:
+UsernamePasswordAuthenticationFilter
+BasicAuthenticationFilter
+Oauth2LoginAuthenticationFilter
+
+
+in WebSecurityConfigurerAdapter we have to manually override Filter method 
+and extract data from claimsJws
+but in securityFilterChain, the method is available handy
