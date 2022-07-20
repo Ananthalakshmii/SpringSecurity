@@ -25,8 +25,11 @@ csrf().disable()
 1.hasAuthority() ---- authority same as permission
 .authorities(ApplicationUserRole.STUDENT.getGrantedAuthorities())
 public Set<SimpleGrantedAuthority> getGrantedAuthorities(){}
+adding configuration in antMatchers with hasAuthority
 2. using annotation -- @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_ADMINTRAINEE')")
-@EnableGlobalMethodSecurity(prePostEnabled = true)
+@EnableGlobalMethodSecurity(prePostEnabled = true) in applicationsecurityconfig
+also .authorities(ApplicationUserRole.STUDENT.getGrantedAuthorities())
+public Set<SimpleGrantedAuthority> getGrantedAuthorities(){}
 
 csrf- cross site request forgery
 - hacker/attacker sends a link to the client, if the logged in user clicks on that link, then the amount from bank will be debited
@@ -101,10 +104,14 @@ verify signature->base64Url,base64urlencode
 JSON::::::
 -Add dependency from https://github.com/jwtk/jjwt
 -implementing send and validating credentials
-attemptAuthentication() (by extending UsernamePasswordAuthenticationFilter)
+1. attemptAuthentication() (by extending UsernamePasswordAuthenticationFilter)
+---Authentication request -> new object mapper-readValue from request.getInput from the class UsernameAndPasswordAuthenticationRequest
+Authentication -> new UsernamePasswordAuthenticationToken(authenticationRequest -> getting username and password)
+Authentication manager authenticates username and password from authentication
 -create and sending token back to client: 
-successfulAuthentication() is executed after successful execution of attemptAuthentication()
--set subject, add claim/subject, set issued and expiration date and sign with key
+2. successfulAuthentication() is executed after successful execution of attemptAuthentication()
+-set subject, add claim/subject, set issued at and expiration date and sign with key and compacting
+and adding it in the response header
  REQUEST FILTER:
  request -> goes thru many filters before reaching an API
  Performs validation to the request and pass it to the next filter or reject the request
@@ -122,48 +129,11 @@ JWT TOKEN VERIFIER FILTER-- send the token along with the request -> server vali
 -create another filter - filter2 - to check whether the token is valid or not --- JwtTokenVerifier
 -extending OncePerRequestFilter-- to execute only once for every request
 Getting the signed jwt
-and from that getting the body -> from that getting username, authorities, authority
+- parsing jwts with the signed key and getting claimsjws
+and from that getting the body -> from that getting username, authorities, authority --(authorities and authority should be same name as that mentioned in jwt.io)
+authenticating using UsernamePasswordAuthenticationToken with the username and authority
 and validitaing token with securitycontextholder --> setting the authentication to the user
 and register the filter in security config
 EACH FILTER PERCEIVES REQUEST RESPONSE	and after completing its operation, it SHOULD SEND THE REQUEST AND RESPONSE TO THE NEXT FILTER IN THE CHAIN UNTIL IT REACHES THE FINAL FILTER
-grab the auhtorization header with the Bearer token and paste it in the header with "Authorization" as the key and token as the value
+grab the auhtorization header with the Bearer token and paste it in the header with "Authorization" as the key and token as the value (in the postman)
 and send the get request with localhost:8080/management/api/v1/students for linda and u will see the result
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
