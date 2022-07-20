@@ -1,0 +1,169 @@
+Form based authentication-- spring boot starter security
+localhost:8080/logout
+Form Data in inspect: username,password,csrf
+
+Basic Authentication- takes username and password at every single request (from a web browser)
+usually used for external api calls
+class extending WebSecurityConfigurerAdapter
+override configure(HttpSecurity)
+-cant logout
+postman-- inject username and password in headers -- that will be there in Headers->Authorization as Basic and something as username and password in base64
+AntMatchers
+override UserDetailsService and return InMemoryUserDetailsManager
+password must be encoded -- PasswordEncoder() --returns new BCryptPasswordEncoder(strength)
+authorization header reqd for each request 
+https recommended
+simple and fast
+roles and permissions: 
+
+role based authentication: student,admin
+ApplicationUserRole and ApplicationUserPermission
+.roles(ApplicationUserRole.ADMINTRAINEE.name())
+
+Permission based authentication:admin,admintrainee,studentmanagementcontroller
+csrf().disable()
+1.hasAuthority() ---- authority same as permission
+.authorities(ApplicationUserRole.STUDENT.getGrantedAuthorities())
+public Set<SimpleGrantedAuthority> getGrantedAuthorities(){}
+2. using annotation -- @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_ADMINTRAINEE')")
+@EnableGlobalMethodSecurity(prePostEnabled = true)
+
+csrf- cross site request forgery
+- hacker/attacker sends a link to the client, if the logged in user clicks on that link, then the amount from bank will be debited
+with csrf enabled:
+- when client logs in the server, server sends the csrf token to the client.. and the client can submit the form with token with post/put/delete.. 
+then the server validates and process the data
+- post,put,delete doesnt work with csrf enabled
+csrf should be enabled- for any request that could be processed by  browser by normal user
+if we are creating service that is used by non-browser clients, can disable csrf protection
+CSRF TOKEN:
+-remove csrf().disable() from code and rerun the code
+-turn on the interceptor in postman
+- execute post code in postman and check for cookies with the 'xsrf-token'. copy the token
+- in the header section-- add-- key as 'X-XSRF-TOKEN' and the value as copied token and then send the request
+- it shows status code 200 ok-- this is CSRF token with spring security
+HOW CSRF TOKEN GETS GENERATED:
+http.csrf().csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()).and()-- gets the token from backend code like Angular,JS,.. //customizing //form for client thru browser
+(The method withHttpOnlyFalse allows angular to read XSRF cookie)
+Token gets generated-- implemented in the class- CookieCsrfTokenRepository.class
+ctrl+N--CsrFilter.class -- doFilterInternal() implements matching csrf token and stuffs
+
+form based authentication: mostly used
+username and password, forms(full control)
+can logout
+https recommended
+-client posts request with username and password tp the server
+-server validates credentials
+-server sends 200 ok
+-and server sends cookie along with the sessionid(expires after 30 mins)
+-client sends any request with session id . server validates the session id(checks from  default in-memory DB..can save in postgres, redis also--better to save in original DB) 
+and sends ok 200..
+formLogin()
+SESSIONID:
+can check in chrome->inspect->application->storage->localhost->jsessionid->value
+CUSTOMIZING FORM:
+.loginPage("").permitAll() -- include thymeleaf dependency
+-create a html inside templates
+-create a controller for html
+-defaultSuccessUrl
+-RememberMe-- to extend the sessionID
+--inspect->network->login-> network-> payload-- will have rememberme(2 weeks expiry) on--> will have cookie for rememberMe
+rememberMe cookie and SessionId cookie will be lost when the server reloads (clears off on logout)
+contains username, expiration time, md5 hash of above 2 values- rememberMe-- use postgres so that we can know if user clicked remember me or not
+EXTEND UR SESSION WITH REMEMBER ME: tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(21))
+customize logout
+LOGOUT
+username,password and rememberme parameters-- it should be same in html and applicationSecurityConfig -- .rememberMeParameter("RememberMe") -- if u want to CHANGE
+
+DB AUTHENTICATION:
+-to remove inMemoryDB and use data from DB
+-create a class that implements UserDetails
+-create a class that implements UserDetailsService
+-create a interface that has the ability to load user by username from any database (defining interface bcoz can later use dependency injection and can switch bwn DBs)
+-create a fakeapplicationuserservice implemented to create a list of users
+- remove userdetailsservice() in config and implement DAOAuthenticationProvider and set password encoder and userdetailsservice
+-override configure() which takes AuthenticationManagerBuilder as parameter
+
+JWT- JSON web token
+-when multiple applications(ios,android,web and 3rd party apps) access the authenticated server
+-fast, stateless(need not have DB-need not store session), used across many services
+-DISADV: compromised secret key, no visibility to logged in users(when user logs in,logs out), token can be stolen
+STEPS:- client sends credentials
+-server validates credentials and creates and signs token
+-server sends token to the client
+-client sends token for each request
+-server validates token(for expiry as well)
+(hacker can steal the token and act as client)
+jwt.io: --- encoded consists of 3 parts:
+header->algorithm and type
+payload->sub,name and ist
+verify signature->base64Url,base64urlencode
+JSON::::::
+-Add dependency from https://github.com/jwtk/jjwt
+-implementing send and validating credentials
+attemptAuthentication() (by extending UsernamePasswordAuthenticationFilter)
+-create and sending token back to client: 
+successfulAuthentication() is executed after successful execution of attemptAuthentication()
+-set subject, add claim/subject, set issued and expiration date and sign with key
+ REQUEST FILTER:
+ request -> goes thru many filters before reaching an API
+ Performs validation to the request and pass it to the next filter or reject the request
+ -create filter1 ----JwtUsernameAndPasswordAuthenticationFilter
+.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) //session wont be stored in the DB--stateless
+			.and()
+.addFilter(new JwtUsernameAndPasswordAuthenticationFilter(authenticationManager())) //adding filter
+-check in postman in localhost:8080/login with body as:
+{"username":"linda","password":"password123"}
+- u will see in the header -> authorization & the Bearer + token
+-check it in jwt.io also
+with the copied token
+- u will be able to see sub(name), authorities,iat(issued at) and expiration time in the payload
+JWT TOKEN VERIFIER FILTER-- send the token along with the request -> server validates the token -> client can access any resource
+-create another filter - filter2 - to check whether the token is valid or not --- JwtTokenVerifier
+-extending OncePerRequestFilter-- to execute only once for every request
+Getting the signed jwt
+and from that getting the body -> from that getting username, authorities, authority
+and validitaing token with securitycontextholder --> setting the authentication to the user
+and register the filter in security config
+EACH FILTER PERCEIVES REQUEST RESPONSE	and after completing its operation, it SHOULD SEND THE REQUEST AND RESPONSE TO THE NEXT FILTER IN THE CHAIN UNTIL IT REACHES THE FINAL FILTER
+grab the auhtorization header with the Bearer token and paste it in the header with "Authorization" as the key and token as the value
+and send the get request with localhost:8080/management/api/v1/students for linda and u will see the result
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
